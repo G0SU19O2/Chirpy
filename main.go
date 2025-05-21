@@ -14,11 +14,11 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/app/", cfg.middlewareMetricsInc(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
 
-	mux.HandleFunc("/metrics", cfg.handlerMetrics)
+	mux.HandleFunc("GET /metrics", cfg.handlerMetrics)
 
-	mux.HandleFunc("/reset", cfg.handlerReset)
+	mux.HandleFunc("POST /reset", cfg.handlerReset)
 
-	mux.HandleFunc("/healthz", handlerReadiness)
+	mux.HandleFunc("GET /healthz", handlerReadiness)
 	server := http.Server{Handler: mux, Addr: ":8080"}
 	server.ListenAndServe()
 }

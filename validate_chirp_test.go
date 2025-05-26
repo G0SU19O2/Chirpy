@@ -11,23 +11,23 @@ import (
 
 func TestHandlerValidateChirp(t *testing.T) {
 	tests := []struct {
-		name           string
-		requestBody    string
-		expectedStatus int
-		expectedValid  *bool
-		expectedError  string
+		name            string
+		requestBody     string
+		expectedStatus  int
+		expectedCleaned string
+		expectedError   string
 	}{
 		{
-			name:           "Valid chirp",
-			requestBody:    `{"body":"This is a valid chirp"}`,
-			expectedStatus: http.StatusOK,
-			expectedValid:  boolPtr(true),
+			name:            "Valid chirp without profanity",
+			requestBody:     `{"body":"This is a valid chirp"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "This is a valid chirp",
 		},
 		{
-			name:           "Valid chirp at exactly 140 characters",
-			requestBody:    `{"body":"` + strings.Repeat("a", 140) + `"}`,
-			expectedStatus: http.StatusOK,
-			expectedValid:  boolPtr(true),
+			name:            "Valid chirp at exactly 140 characters",
+			requestBody:     `{"body":"` + strings.Repeat("a", 140) + `"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: strings.Repeat("a", 140),
 		},
 		{
 			name:           "Chirp too long (141 characters)",
@@ -36,10 +36,10 @@ func TestHandlerValidateChirp(t *testing.T) {
 			expectedError:  "Chirp is too long",
 		},
 		{
-			name:           "Empty chirp body",
-			requestBody:    `{"body":""}`,
-			expectedStatus: http.StatusOK,
-			expectedValid:  boolPtr(true),
+			name:            "Empty chirp body",
+			requestBody:     `{"body":""}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "",
 		},
 		{
 			name:           "Invalid JSON - missing quotes",
@@ -60,10 +60,46 @@ func TestHandlerValidateChirp(t *testing.T) {
 			expectedError:  "Invalid JSON",
 		},
 		{
-			name:           "Missing body field",
-			requestBody:    `{"message":"test"}`,
-			expectedStatus: http.StatusOK,
-			expectedValid:  boolPtr(true),
+			name:            "Missing body field",
+			requestBody:     `{"message":"test"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "",
+		},
+		{
+			name:            "Chirp with single profane word",
+			requestBody:     `{"body":"This is a kerfuffle opinion"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "This is a **** opinion",
+		},
+		{
+			name:            "Chirp with multiple profane words",
+			requestBody:     `{"body":"What a kerfuffle! I love sharbert and fornax"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "What a kerfuffle! I love **** and ****",
+		},
+		{
+			name:            "Chirp with uppercase profane words",
+			requestBody:     `{"body":"KERFUFFLE and Sharbert are FORNAX"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "**** and **** are ****",
+		},
+		{
+			name:            "Chirp with mixed case profane words",
+			requestBody:     `{"body":"KerfUffle ShArbert FoRnAx"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "**** **** ****",
+		},
+		{
+			name:            "Chirp with profane words with punctuation (should not be replaced)",
+			requestBody:     `{"body":"Sharbert! kerfuffle? fornax."}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "Sharbert! kerfuffle? fornax.",
+		},
+		{
+			name:            "Chirp with words containing profane substrings (should not be replaced)",
+			requestBody:     `{"body":"sharberted kerfuffled fornaxed"}`,
+			expectedStatus:  http.StatusOK,
+			expectedCleaned: "sharberted kerfuffled fornaxed",
 		},
 	}
 
@@ -90,9 +126,9 @@ func TestHandlerValidateChirp(t *testing.T) {
 				t.Fatalf("Failed to parse response JSON: %v", err)
 			}
 
-			if tt.expectedValid != nil {
-				if valid, ok := responseBody["valid"].(bool); !ok || valid != *tt.expectedValid {
-					t.Errorf("Expected valid: %v, got: %v", *tt.expectedValid, responseBody["valid"])
+			if tt.expectedCleaned != "" {
+				if cleanedBody, ok := responseBody["cleaned_body"].(string); !ok || cleanedBody != tt.expectedCleaned {
+					t.Errorf("Expected cleaned_body: %q, got: %v", tt.expectedCleaned, responseBody["cleaned_body"])
 				}
 				if _, hasError := responseBody["error"]; hasError {
 					t.Errorf("Expected no error field, but got one: %v", responseBody["error"])
@@ -103,14 +139,10 @@ func TestHandlerValidateChirp(t *testing.T) {
 				if errorMsg, ok := responseBody["error"].(string); !ok || errorMsg != tt.expectedError {
 					t.Errorf("Expected error: %s, got: %v", tt.expectedError, responseBody["error"])
 				}
-				if _, hasValid := responseBody["valid"]; hasValid {
-					t.Errorf("Expected no valid field, but got one: %v", responseBody["valid"])
+				if _, hasCleaned := responseBody["cleaned_body"]; hasCleaned {
+					t.Errorf("Expected no cleaned_body field, but got one: %v", responseBody["cleaned_body"])
 				}
 			}
 		})
 	}
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }

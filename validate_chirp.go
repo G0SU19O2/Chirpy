@@ -3,18 +3,19 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 type ChirpRequest struct {
 	Body string `json:"body"`
 }
 
-type ErrorResponse struct {
-	Error string `json:"error"`
+type CleanResponse struct {
+	CleanedBody string `json:"cleaned_body"`
 }
 
-type ValidResponse struct {
-	Valid bool `json:"valid"`
+type ErrorResponse struct {
+	Error string `json:"error"`
 }
 
 func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
@@ -32,8 +33,23 @@ func handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Chirp is too long")
 		return
 	}
+	respondWithJSON(w, http.StatusOK, CleanResponse{cleanProfanity(req.Body)})
+}
 
-	respondWithJSON(w, http.StatusOK, ValidResponse{Valid: true})
+func cleanProfanity(text string) string {
+	profaneWords := []string{"kerfuffle", "sharbert", "fornax"}
+	words := strings.Fields(text)
+
+	for i, word := range words {
+		for _, profane := range profaneWords {
+			if strings.ToLower(word) == profane {
+				words[i] = "****"
+				break
+			}
+		}
+	}
+
+	return strings.Join(words, " ")
 }
 
 func respondWithError(w http.ResponseWriter, statusCode int, message string) {

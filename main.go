@@ -1,8 +1,13 @@
 package main
 
 import (
+	"database/sql"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/G0SU19O2/Chirpy/internal/database"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type apiConfig struct {
@@ -10,6 +15,14 @@ type apiConfig struct {
 }
 
 func main() {
+	dbURL := os.Getenv("DB_URL")
+	db, err := sql.Open("mysql", dbURL)
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	_ = database.New(db)
+
 	cfg := apiConfig{}
 	mux := http.NewServeMux()
 	mux.Handle("/app/", cfg.middlewareMetricsInc(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))

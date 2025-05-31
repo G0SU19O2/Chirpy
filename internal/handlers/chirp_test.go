@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"bytes"
@@ -110,7 +110,7 @@ func TestHandlerValidateChirp(t *testing.T) {
 
 			rr := httptest.NewRecorder()
 
-			handlerValidateChirp(rr, req)
+			HandleValidateChirp(rr, req)
 
 			if rr.Code != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, rr.Code)

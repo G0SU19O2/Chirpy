@@ -1,9 +1,20 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"gorm.io/gorm"
+)
 
 func (cfg *apiConfig) handlerReset(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(200)
-	cfg.fileserverHits.Store(0)
-	w.Write([]byte("Hits reset to 0"))
+	if cfg.platform != "DEV" {
+		respondWithError(w, http.StatusForbidden, "Forbidden")
+		return
+	}
+	result := cfg.db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&User{})
+	if result.Error != nil {
+		respondWithError(w, http.StatusInternalServerError, "Cannot remove users")
+		return
+	}
+	respondWithJSON(w, http.StatusOK, "Remove all users")
 }

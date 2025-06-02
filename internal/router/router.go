@@ -20,7 +20,7 @@ func SetupRoutes(cfg *config.Config) *http.ServeMux {
 
 	// API routes
 	mux.HandleFunc("GET /api/healthz", handlers.HandleReadiness)
-	mux.HandleFunc("POST /api/validate_chirp", handlers.HandleValidateChirp)
+	mux.HandleFunc("POST /api/chirps", handlers.HandleCreateChip(cfg))
 	mux.HandleFunc("POST /api/users", handlers.HandleCreateUser(cfg))
 
 	return mux

@@ -12,6 +12,30 @@ import (
 	"github.com/G0SU19O2/Chirpy/internal/models"
 )
 
+func HandleGetChirpById(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		chirpIDStr := r.PathValue("chirpID")
+		if chirpIDStr == "" {
+            RespondWithError(w, http.StatusBadRequest, "Chirp ID is required")
+            return
+        }
+		chirpID, err := strconv.ParseUint(chirpIDStr, 10, 32)
+        if err != nil {
+            RespondWithError(w, http.StatusBadRequest, "Invalid chirp ID format")
+            return
+        }
+		var chirp models.Chirp
+		result := cfg.DB.First(&chirp, uint(chirpID))
+		if result.Error != nil {
+            RespondWithError(w, http.StatusNotFound, "Chirp not found")
+            return
+        }
+		response := buildChirpResponse(&chirp)
+		RespondWithJSON(w, http.StatusOK, response)
+	}
+}
+
 func HandleGetAllChirps(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

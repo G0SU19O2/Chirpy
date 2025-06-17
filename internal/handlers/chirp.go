@@ -12,6 +12,23 @@ import (
 	"github.com/G0SU19O2/Chirpy/internal/models"
 )
 
+func HandleGetAllChirps(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var chirps []models.Chirp
+		result := cfg.DB.Find(&chirps)
+		if result.Error != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Failed to get chirps")
+			return
+		}
+		var responses []models.ChirpResponse
+		for _, chirp := range chirps {
+			responses = append(responses, buildChirpResponse(&chirp))
+		}
+		RespondWithJSON(w, http.StatusOK, responses)
+	}
+}
+
 func HandleCreateChip(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -45,6 +62,7 @@ func HandleCreateChip(cfg *config.Config) http.HandlerFunc {
 
 		response := buildChirpResponse(chirp)
 		RespondWithJSON(w, http.StatusCreated, response)
+
 	}
 }
 

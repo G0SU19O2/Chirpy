@@ -7,6 +7,7 @@ import (
 type User struct {
 	gorm.Model
 	Email string `gorm:"size:255;uniqueIndex"`
+	HashedPassword string `gorm:"not null"`
 }
 type Chirp struct {
 	gorm.Model
@@ -24,6 +25,7 @@ type ChirpResponse struct {
 }
 type UserRequest struct {
 	Email string `json:"email"`
+	Password string `json:"password"`
 }
 
 type UserResponse struct {

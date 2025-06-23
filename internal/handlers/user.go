@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/G0SU19O2/Chirpy/internal/auth"
 	"github.com/G0SU19O2/Chirpy/internal/config"
@@ -21,18 +22,18 @@ func createUser(db *gorm.DB, email string, password string) (*models.User, error
 	return user, result.Error
 }
 
-func userToResponse(user *models.User) models.UserResponse {
+func userToResponse(user *models.User, token string) models.UserResponse {
 	return models.UserResponse{
 		ID:        strconv.FormatUint(uint64(user.ID), 10),
 		CreatedAt: user.CreatedAt.String(),
 		UpdatedAt: user.UpdatedAt.String(),
 		Email:     user.Email,
+		Token:     token,
 	}
 }
 
 func HandleCreateUser(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		var req models.UserRequest
 		decoder := json.NewDecoder(r.Body)
 		if err := decoder.Decode(&req); err != nil {
@@ -44,14 +45,13 @@ func HandleCreateUser(cfg *config.Config) http.HandlerFunc {
 			RespondWithError(w, http.StatusBadRequest, "Something wrong")
 			return
 		}
-		resp := userToResponse(user)
+		resp := userToResponse(user, "")
 		RespondWithJSON(w, http.StatusCreated, resp)
 	}
 }
 
 func HandleLoginUser(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		var req models.UserRequest
 		decoder := json.NewDecoder(r.Body)
 
@@ -71,7 +71,17 @@ func HandleLoginUser(cfg *config.Config) http.HandlerFunc {
 			RespondWithError(w, http.StatusUnauthorized, "Invalid email or password")
 			return
 		}
-		resp := userToResponse(&user)
+
+		expiresIn := req.ExpiresInSeconds
+		if expiresIn <= 0 || expiresIn > 3600 {
+			expiresIn = 3600
+		}
+		token, err := auth.MakeJWT(strconv.FormatUint(uint64(user.ID), 10), cfg.JWTSecret, time.Duration(expiresIn)*time.Second)
+		if err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Could not create token")
+			return
+		}
+		resp := userToResponse(&user, token)
 		RespondWithJSON(w, http.StatusOK, resp)
 	}
 }

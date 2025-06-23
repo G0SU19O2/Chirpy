@@ -6,26 +6,27 @@ import (
 
 type User struct {
 	gorm.Model
-	Email string `gorm:"size:255;uniqueIndex"`
+	Email          string `gorm:"size:255;uniqueIndex"`
 	HashedPassword string `gorm:"not null"`
 }
 type Chirp struct {
 	gorm.Model
-	Body string `gorm:"not null"`
-	UserID uint `gorm:"constraint:OnDelete:CASCADE;"`
-	User User `gorm:"foreignKey:UserID"`
+	Body   string `gorm:"not null"`
+	UserID uint   `gorm:"constraint:OnDelete:CASCADE;"`
+	User   User   `gorm:"foreignKey:UserID"`
 }
 
 type ChirpResponse struct {
-	Id string `json:"id"`
+	Id        string `json:"id"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
-	Body string `json:"body"`
-	UserId string `json:"user_id"`
+	Body      string `json:"body"`
+	UserId    string `json:"user_id"`
 }
 type UserRequest struct {
-	Email string `json:"email"`
-	Password string `json:"password"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	ExpiresInSeconds int    `json:"expires_in_seconds"`
 }
 
 type UserResponse struct {
@@ -33,11 +34,12 @@ type UserResponse struct {
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
 	Email     string `json:"email"`
+	Token     string `json:"token,omitempty"`
 }
 
 type ChirpRequest struct {
 	UserId string `json:"user_id"`
-	Body string `json:"body"`
+	Body   string `json:"body"`
 }
 
 type CleanResponse struct {

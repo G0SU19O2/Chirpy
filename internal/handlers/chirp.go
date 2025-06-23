@@ -8,29 +8,29 @@ import (
 	"strings"
 	"time"
 
+	"github.com/G0SU19O2/Chirpy/internal/auth"
 	"github.com/G0SU19O2/Chirpy/internal/config"
 	"github.com/G0SU19O2/Chirpy/internal/models"
 )
 
 func HandleGetChirpById(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		chirpIDStr := r.PathValue("chirpID")
 		if chirpIDStr == "" {
-            RespondWithError(w, http.StatusBadRequest, "Chirp ID is required")
-            return
-        }
+			RespondWithError(w, http.StatusBadRequest, "Chirp ID is required")
+			return
+		}
 		chirpID, err := strconv.ParseUint(chirpIDStr, 10, 32)
-        if err != nil {
-            RespondWithError(w, http.StatusBadRequest, "Invalid chirp ID format")
-            return
-        }
+		if err != nil {
+			RespondWithError(w, http.StatusBadRequest, "Invalid chirp ID format")
+			return
+		}
 		var chirp models.Chirp
 		result := cfg.DB.First(&chirp, uint(chirpID))
 		if result.Error != nil {
-            RespondWithError(w, http.StatusNotFound, "Chirp not found")
-            return
-        }
+			RespondWithError(w, http.StatusNotFound, "Chirp not found")
+			return
+		}
 		response := buildChirpResponse(&chirp)
 		RespondWithJSON(w, http.StatusOK, response)
 	}
@@ -38,7 +38,6 @@ func HandleGetChirpById(cfg *config.Config) http.HandlerFunc {
 
 func HandleGetAllChirps(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		var chirps []models.Chirp
 		result := cfg.DB.Find(&chirps)
 		if result.Error != nil {
@@ -53,9 +52,19 @@ func HandleGetAllChirps(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-func HandleCreateChip(cfg *config.Config) http.HandlerFunc {
+func HandleCreateChirp(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		token, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		tokenUserId, err := auth.ValidateJWT(token, cfg.JWTSecret)
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
 
 		req, err := parseChirpRequest(r)
 		if err != nil {
@@ -74,6 +83,11 @@ func HandleCreateChip(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		if tokenUserId != strconv.FormatUint(uint64(userID), 10) {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
 		chirp := &models.Chirp{
 			Body:   cleanProfanity(req.Body),
 			UserID: userID,
@@ -86,7 +100,6 @@ func HandleCreateChip(cfg *config.Config) http.HandlerFunc {
 
 		response := buildChirpResponse(chirp)
 		RespondWithJSON(w, http.StatusCreated, response)
-
 	}
 }
 

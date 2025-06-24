@@ -1,8 +1,20 @@
 package models
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
+
+type RefreshToken struct {
+	Token string `gorm:"primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID uint `gorm:"constraint:OnDelete:CASCADE;"`
+	User User `gorm:"foreignKey:UserID"`
+	ExpiresAt time.Time `gorm:"not null"`
+	RevokedAt *time.Time `gorm:"default:NULL"`
+}
 
 type User struct {
 	gorm.Model
@@ -35,6 +47,7 @@ type UserResponse struct {
 	UpdatedAt string `json:"updated_at"`
 	Email     string `json:"email"`
 	Token     string `json:"token,omitempty"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
 type ChirpRequest struct {

@@ -161,3 +161,52 @@ func HandleRevokeToken(cfg *config.Config) http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
+
+func HandleUpdateUser(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		tokenUserId, err := auth.ValidateJWT(token, cfg.JWTSecret)
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		var user models.User
+		if err := cfg.DB.First(&user, tokenUserId).Error; err != nil {
+			RespondWithError(w, http.StatusUnauthorized, "User not found")
+			return
+		}
+
+		var req models.UserUpdateRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			RespondWithError(w, http.StatusBadRequest, "Invalid JSON")
+			return
+		}
+
+		if req.Email != "" {
+			user.Email = req.Email
+		}
+
+		if req.Password != "" {
+			hashedPassword, err := auth.HashPassword(req.Password)
+			if err != nil {
+				RespondWithError(w, http.StatusInternalServerError, "Failed to hash password")
+				return
+			}
+			user.HashedPassword = hashedPassword
+		}
+
+		if err := cfg.DB.Save(&user).Error; err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Failed to update user")
+			return
+		}
+
+		resp := userToResponse(&user, "", "")
+		RespondWithJSON(w, http.StatusOK, resp)
+	}
+}

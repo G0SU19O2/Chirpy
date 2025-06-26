@@ -21,6 +21,12 @@ type User struct {
 	Email          string `gorm:"size:255;uniqueIndex"`
 	HashedPassword string `gorm:"not null"`
 }
+
+type UserUpdateRequest struct {
+	Password string `json:"password"`
+	Email string `json:"email"`
+}
+
 type Chirp struct {
 	gorm.Model
 	Body   string `gorm:"not null"`

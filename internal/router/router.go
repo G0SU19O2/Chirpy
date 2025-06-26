@@ -21,6 +21,7 @@ func SetupRoutes(cfg *config.Config) *http.ServeMux {
 	// API routes
 	mux.HandleFunc("GET /api/healthz", handlers.HandleReadiness)
 	mux.HandleFunc("POST /api/users", middleware.JSONContentType(handlers.HandleCreateUser(cfg)))
+	mux.HandleFunc("PUT /api/users", middleware.JSONContentType(handlers.HandleUpdateUser(cfg)))
 	mux.HandleFunc("POST /api/chirps", middleware.JSONContentType(handlers.HandleCreateChirp(cfg)))
 	mux.HandleFunc("GET /api/chirps", middleware.JSONContentType(handlers.HandleGetAllChirps(cfg)))
 	mux.HandleFunc("GET /api/chirps/{chirpID}", middleware.JSONContentType(handlers.HandleGetChirpById(cfg)))

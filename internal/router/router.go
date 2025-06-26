@@ -24,6 +24,7 @@ func SetupRoutes(cfg *config.Config) *http.ServeMux {
 	mux.HandleFunc("PUT /api/users", middleware.JSONContentType(handlers.HandleUpdateUser(cfg)))
 	mux.HandleFunc("POST /api/chirps", middleware.JSONContentType(handlers.HandleCreateChirp(cfg)))
 	mux.HandleFunc("GET /api/chirps", middleware.JSONContentType(handlers.HandleGetAllChirps(cfg)))
+	mux.HandleFunc("DELETE /api/chirps/{chirpID}", middleware.JSONContentType(handlers.HandleDeleteChirp(cfg)))
 	mux.HandleFunc("GET /api/chirps/{chirpID}", middleware.JSONContentType(handlers.HandleGetChirpById(cfg)))
 	mux.HandleFunc("POST /api/login", middleware.JSONContentType(handlers.HandleLoginUser(cfg)))
 	mux.HandleFunc("POST /api/refresh", middleware.JSONContentType(handlers.HandleRefreshToken(cfg)))

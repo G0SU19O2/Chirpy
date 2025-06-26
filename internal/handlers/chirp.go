@@ -11,7 +11,74 @@ import (
 	"github.com/G0SU19O2/Chirpy/internal/auth"
 	"github.com/G0SU19O2/Chirpy/internal/config"
 	"github.com/G0SU19O2/Chirpy/internal/models"
+	"gorm.io/gorm"
 )
+
+func HandleDeleteChirp(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		chirpID, err := parseChirpIDFromPath(r)
+		if err != nil {
+			RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		token, err := auth.GetBearerToken(r.Header)
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		tokenUserId, err := auth.ValidateJWT(token, cfg.JWTSecret)
+		if err != nil {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		chirp, err := findChirpByID(cfg.DB, chirpID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				RespondWithError(w, http.StatusNotFound, "Chirp not found")
+				return
+			}
+			RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirp")
+			return
+		}
+
+		if !isChirpOwner(tokenUserId, chirp.UserID) {
+			RespondWithError(w, http.StatusUnauthorized, "You are not authorized to delete this chirp")
+			return
+		}
+
+		if err := cfg.DB.Delete(&chirp).Error; err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Failed to delete chirp")
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func parseChirpIDFromPath(r *http.Request) (uint, error) {
+	chirpIDStr := r.PathValue("chirpID")
+	if chirpIDStr == "" {
+		return 0, fmt.Errorf("Chirp ID is required")
+	}
+	chirpID, err := strconv.ParseUint(chirpIDStr, 10, 32)
+	if err != nil {
+		return 0, fmt.Errorf("Invalid chirp ID format")
+	}
+	return uint(chirpID), nil
+}
+
+func findChirpByID(db *gorm.DB, chirpID uint) (*models.Chirp, error) {
+	var chirp models.Chirp
+	result := db.First(&chirp, chirpID)
+	return &chirp, result.Error
+}
+
+func isChirpOwner(tokenUserId string, chirpUserID uint) bool {
+	return tokenUserId == strconv.FormatUint(uint64(chirpUserID), 10)
+}
 
 func HandleGetChirpById(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

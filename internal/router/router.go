@@ -29,5 +29,6 @@ func SetupRoutes(cfg *config.Config) *http.ServeMux {
 	mux.HandleFunc("POST /api/login", middleware.JSONContentType(handlers.HandleLoginUser(cfg)))
 	mux.HandleFunc("POST /api/refresh", middleware.JSONContentType(handlers.HandleRefreshToken(cfg)))
 	mux.HandleFunc("POST /api/revoke", middleware.JSONContentType(handlers.HandleRevokeToken(cfg)))
+	mux.HandleFunc("POST /api/polka/webhooks", middleware.JSONContentType(handlers.HandleWebHook(cfg)))
 	return mux
 }

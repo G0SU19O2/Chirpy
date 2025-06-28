@@ -6,13 +6,20 @@ import (
 	"gorm.io/gorm"
 )
 
+type WebhookRequest struct {
+	Event string `json:"event"`
+	Data  struct {
+		UserID string `json:"user_id"`
+	} `json:"data"`
+}
+
 type RefreshToken struct {
-	Token string `gorm:"primaryKey"`
+	Token     string `gorm:"primaryKey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	UserID uint `gorm:"constraint:OnDelete:CASCADE;"`
-	User User `gorm:"foreignKey:UserID"`
-	ExpiresAt time.Time `gorm:"not null"`
+	UserID    uint       `gorm:"constraint:OnDelete:CASCADE;"`
+	User      User       `gorm:"foreignKey:UserID"`
+	ExpiresAt time.Time  `gorm:"not null"`
 	RevokedAt *time.Time `gorm:"default:NULL"`
 }
 
@@ -20,11 +27,12 @@ type User struct {
 	gorm.Model
 	Email          string `gorm:"size:255;uniqueIndex"`
 	HashedPassword string `gorm:"not null"`
+	IsChirpyRed    bool   `gorm:"default:false"`
 }
 
 type UserUpdateRequest struct {
 	Password string `json:"password"`
-	Email string `json:"email"`
+	Email    string `json:"email"`
 }
 
 type Chirp struct {
@@ -48,12 +56,13 @@ type UserRequest struct {
 }
 
 type UserResponse struct {
-	ID        string `json:"id"`
-	CreatedAt string `json:"created_at"`
-	UpdatedAt string `json:"updated_at"`
-	Email     string `json:"email"`
-	Token     string `json:"token,omitempty"`
+	ID           string `json:"id"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	Email        string `json:"email"`
+	Token        string `json:"token,omitempty"`
 	RefreshToken string `json:"refresh_token,omitempty"`
+	IsChirpyRed  bool   `json:"is_chirpy_red,omitempty"`
 }
 
 type ChirpRequest struct {

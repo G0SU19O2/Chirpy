@@ -5,12 +5,18 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/G0SU19O2/Chirpy/internal/auth"
 	"github.com/G0SU19O2/Chirpy/internal/config"
 	"github.com/G0SU19O2/Chirpy/internal/models"
 )
 
 func HandleWebHook(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		apiKey, err := auth.GetAPIKey(r.Header)
+		if err != nil || apiKey != cfg.PolkaAPIKey {
+			RespondWithError(w, http.StatusUnauthorized, "Invalid API key")
+			return
+		}
 		var req models.WebhookRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			RespondWithError(w, http.StatusBadRequest, "Invalid JSON")

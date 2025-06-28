@@ -89,3 +89,11 @@ func RevokeRefreshToken(db *gorm.DB, token *models.RefreshToken) error {
 	result := db.Save(token)
 	return result.Error
 }
+
+func GetAPIKey(headers http.Header) (string, error) {
+	apiKey := headers.Get("Authorization")
+	if apiKey == "" {
+		return "", errors.New("API key is missing")
+	}
+	return apiKey, nil
+} 

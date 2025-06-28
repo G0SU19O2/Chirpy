@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -105,17 +106,45 @@ func HandleGetChirpById(cfg *config.Config) http.HandlerFunc {
 
 func HandleGetAllChirps(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		authorIDStr := r.URL.Query().Get("author_id")
+		sortOrder := r.URL.Query().Get("sort")
+
+		query := cfg.DB
+		if authorIDStr != "" {
+			authorID, err := strconv.ParseUint(authorIDStr, 10, 32)
+			if err != nil {
+				RespondWithError(w, http.StatusBadRequest, "Invalid author_id format")
+				return
+			}
+			query = query.Where("user_id = ?", uint(authorID))
+		}
+
 		var chirps []models.Chirp
-		result := cfg.DB.Find(&chirps)
-		if result.Error != nil {
-			RespondWithError(w, http.StatusInternalServerError, "Failed to get chirps")
+		if err := query.Find(&chirps).Error; err != nil {
+			RespondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps")
 			return
 		}
-		var responses []models.ChirpResponse
-		for _, chirp := range chirps {
-			responses = append(responses, buildChirpResponse(&chirp))
+
+		responses := make([]models.ChirpResponse, len(chirps))
+		for i, chirp := range chirps {
+			responses[i] = buildChirpResponse(&chirp)
 		}
+
+		sortResponses(responses, sortOrder)
+
 		RespondWithJSON(w, http.StatusOK, responses)
+	}
+}
+
+func sortResponses(responses []models.ChirpResponse, sortOrder string) {
+	if sortOrder == "desc" {
+		sort.Slice(responses, func(i, j int) bool {
+			return responses[i].CreatedAt > responses[j].CreatedAt
+		})
+	} else {
+		sort.Slice(responses, func(i, j int) bool {
+			return responses[i].CreatedAt < responses[j].CreatedAt
+		})
 	}
 }
 
